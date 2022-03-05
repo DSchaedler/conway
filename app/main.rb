@@ -1,32 +1,33 @@
 # frozen_string_literal: true
 
 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 4
+SIM_SCALE = 8
 
 def tick(args)
   args.state.setup_done ||= false
   args.state.cells_checked ||= 0
   args.state.debug ||= false
 
-  setup(args) if args.state.setup_done == false
-  main_cycle(args) if args.state.setup_done == true
+  if args.state.setup_done == false
+    setup(args)
+    args.render_target(:output).primitives << { x: args.grid.center_x, y: args.grid.center_y, alignment_enum: 1, text: 'Loading...', r: 0,
+                      g: 255, b: 0, primitive_marker: :label }
+  else
+    main_cycle(args)
 
-  args.state.debug = !args.state.debug if args.inputs.keyboard.key_up.tab
-
-  args.outputs.sprites << { x: 0, y: 0, w: args.grid.w, h: args.grid.h, path: :field }
-  if args.state.debug
-    args.outputs.solids << { x: args.grid.left, y: args.grid.top - 50, w: 400, h: 50, a: 200 }
-    args.outputs.labels << { x: args.grid.left, y: args.grid.top, text: "FPS: #{args.gtk.current_framerate}", r: 0,
-                             g: 0, b: 255, size: 2 }
-    perent = ((args.state.cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))) * 100).round(2)
-    args.outputs.labels << { x: args.grid.left, y: args.grid.top - 20, text: "Cells Checked: #{args.state.cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
-                             g: 0, b: 255, size: 2 }
+    args.state.debug = !args.state.debug if args.inputs.keyboard.key_up.tab
+    if args.state.debug
+      args.render_target(:output).primitives << { x: args.grid.left, y: args.grid.top - 50, w: 400, h: 50, a: 200, primitive_marker: :solid }
+      args.render_target(:output).primitives << { x: args.grid.left, y: args.grid.top, text: "FPS: #{args.gtk.current_framerate}", r: 0,
+                        g: 0, b: 255, size: 2, primitive_marker: :label }
+      perent = ((args.state.cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))) * 100).round(2)
+      args.render_target(:output).primitives << { x: args.grid.left, y: args.grid.top - 20, text: "Cells Checked: #{args.state.cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
+                        g: 0, b: 255, size: 2, primitive_marker: :label }
+    end
   end
 
-  return unless args.state.setup_done == false
-
-  args.outputs.labels << { x: args.grid.center_x, y: args.grid.center_y, alignment_enum: 1, text: 'Loading...', r: 0,
-                           g: 255, b: 0 }
+  args.render_target(:output).primitives << { x: 0, y: 0, w: args.grid.w, h: args.grid.h, path: :field, primitive_marker: :sprite }
+  args.outputs.primitives << { x: 0, y: 0, w: args.grid.w, h: args.grid.h, path: :output, primitive_marker: :sprite }
 end
 
 def setup(args)
@@ -68,7 +69,6 @@ def main_cycle(args)
   # 123
   # 4@6
   # 789
-  $current_pixels
 
   next_tick = {}
   dead_cells_to_check = {}
