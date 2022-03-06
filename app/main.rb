@@ -8,10 +8,9 @@ def tick(args)
   $cells_checked ||= 0
   $debug ||= false
 
-  tick_output = []
-
   if $setup_done == false
     setup(args)
+    tick_output ||= []
     tick_output << { x: 640, y: 360, alignment_enum: 1, text: 'Loading...', r: 0,
                      g: 255, b: 0, primitive_marker: :label }
   else
@@ -19,18 +18,21 @@ def tick(args)
 
     $debug = !$debug if args.inputs.keyboard.key_up.tab
     if $debug
-      tick_output << { x: 0, y: 720 - 50, w: 400, h: 50, a: 200,
+      tick_output ||= []
+      tick_output << { x: 0, y: 720 - 40, w: 490, h: 40, a: 200,
                        primitive_marker: :solid }
       tick_output << { x: 0, y: 720, text: "FPS: #{args.gtk.current_framerate}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label }
-      perent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))) * 100).round(2)
-      tick_output << { x: 0, y: 720 - 20, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
+      percent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))))
+      tick_output << { x: 0, y: 720 - 20, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{percent}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label }
     end
   end
 
+  tick_output ||= nil
+
+  $render_pixels.concat(tick_output) if tick_output
   args.outputs.primitives << $render_pixels
-  args.outputs.primitives << tick_output if tick_output != []
 end
 
 def setup(args)
@@ -73,14 +75,14 @@ def main_cycle(args)
   iter_x = $current_pixels.length - 1
   temp_keys = $current_pixels.keys
   temp_values = $current_pixels.values
-  
 
   while iter_x >= 0
     iter_y = temp_values[iter_x].length - 1
     cells_checked += iter_y
+    temp_x_keys = temp_values[iter_x].keys
+    curr_x = temp_keys[iter_x]
     while iter_y >= 0
-      curr_x = temp_keys[iter_x]
-      curr_y = temp_values[iter_x].keys[iter_y]
+      curr_y = temp_x_keys[iter_y]
       neighbors = 0
 
       n_locs = [
@@ -96,15 +98,17 @@ def main_cycle(args)
 
       location_iter = 0
 
-      while location_iter < n_locs.length
+      while location_iter < 8
         location = n_locs[location_iter]
         location_iter += 1
-        if (location[:x]) > 0 && location[:x] < 1280 && (location[:y]) > 0 && location[:y] < 720
-          if $current_pixels.key?(location[:x]) && $current_pixels[location[:x]].key?(location[:y])
+        x = location[:x]
+        y = location[:y]
+        if (x) > 0 && x < 1280 && (y) > 0 && y < 720
+          if $current_pixels.key?(x) && $current_pixels[x].key?(y)
             neighbors += 1
           else
-            dead_cells_to_check[location[:x]] ||= {}
-            dead_cells_to_check[location[:x]][location[:y]] = false
+            dead_cells_to_check[x] ||= {}
+            dead_cells_to_check[x][y] = false
           end
         end
       end
@@ -129,9 +133,10 @@ def main_cycle(args)
   while iter_x >= 0
     iter_y = temp_values[iter_x].length - 1
     cells_checked += iter_y
+    temp_x_keys = temp_values[iter_x].keys
+    curr_x = temp_keys[iter_x]
     while iter_y >= 0
-      curr_x = temp_keys[iter_x]
-      curr_y = temp_values[iter_x].keys[iter_y]
+      curr_y = temp_x_keys[iter_y]
       neighbors = 0
 
       n_locs = [
@@ -147,14 +152,16 @@ def main_cycle(args)
 
       location_iter = 0
 
-      while location_iter < n_locs.length
+      while location_iter < 8
         location = n_locs[location_iter]
         location_iter += 1
-        unless (location[:x]) > 0 && location[:x] < 1280 && (location[:y]) > 0 && location[:y] < 720
+        x = location[:x]
+        y = location[:y]
+        unless (x) > 0 && x < 1280 && (y) > 0 && y < 720
           next
         end
 
-        neighbors += 1 if $current_pixels.key?(location[:x]) && $current_pixels[location[:x]].key?(location[:y])
+        neighbors += 1 if $current_pixels.key?(x) && $current_pixels[x].key?(y)
       end
 
       if neighbors == 3
