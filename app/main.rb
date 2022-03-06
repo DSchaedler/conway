@@ -4,64 +4,58 @@
 SIM_SCALE = 8
 
 def tick(args)
-  args.state.setup_done ||= false
-  args.state.cells_checked ||= 0
-  args.state.debug ||= false
+  $setup_done ||= false
+  $cells_checked ||= 0
+  $debug ||= false
 
-  if args.state.setup_done == false
+  tick_output = []
+
+  if $setup_done == false
     setup(args)
-    args.render_target(:output).primitives << { x: args.grid.center_x, y: args.grid.center_y, alignment_enum: 1, text: 'Loading...', r: 0,
-                      g: 255, b: 0, primitive_marker: :label }
+    tick_output << { x: args.grid.center_x, y: args.grid.center_y, alignment_enum: 1, text: 'Loading...', r: 0,
+                     g: 255, b: 0, primitive_marker: :label }
   else
     main_cycle(args)
 
-    args.state.debug = !args.state.debug if args.inputs.keyboard.key_up.tab
-    if args.state.debug
-      args.render_target(:output).primitives << { x: args.grid.left, y: args.grid.top - 50, w: 400, h: 50, a: 200, primitive_marker: :solid }
-      args.render_target(:output).primitives << { x: args.grid.left, y: args.grid.top, text: "FPS: #{args.gtk.current_framerate}", r: 0,
-                        g: 0, b: 255, size: 2, primitive_marker: :label }
-      perent = ((args.state.cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))) * 100).round(2)
-      args.render_target(:output).primitives << { x: args.grid.left, y: args.grid.top - 20, text: "Cells Checked: #{args.state.cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
-                        g: 0, b: 255, size: 2, primitive_marker: :label }
+    $debug = !$debug if args.inputs.keyboard.key_up.tab
+    if $debug
+      tick_output << { x: args.grid.left, y: args.grid.top - 50, w: 400, h: 50, a: 200,
+                       primitive_marker: :solid }
+      tick_output << { x: args.grid.left, y: args.grid.top, text: "FPS: #{args.gtk.current_framerate}", r: 0,
+                       g: 0, b: 255, size: 2, primitive_marker: :label }
+      perent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))) * 100).round(2)
+      tick_output << { x: args.grid.left, y: args.grid.top - 20, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
+                       g: 0, b: 255, size: 2, primitive_marker: :label }
     end
   end
 
-  args.render_target(:output).primitives << { x: 0, y: 0, w: args.grid.w, h: args.grid.h, path: :field, primitive_marker: :sprite }
-  args.outputs.primitives << { x: 0, y: 0, w: args.grid.w, h: args.grid.h, path: :output, primitive_marker: :sprite }
+  args.outputs.primitives << $render_pixels
+  args.outputs.primitives << tick_output
 end
 
 def setup(args)
   $current_pixels ||= {}
 
-  args.state.iter_y ||= 0
-  iter_y = args.state.iter_y
+  $iter_y ||= 0
+  iter_y = $iter_y
   iter_x = 0
+
+  $render_pixels ||= []
 
   if iter_y < args.grid.h
     while iter_x < args.grid.w
       $current_pixels[iter_x] ||= {}
-      $current_pixels[iter_x][iter_y] = true if rand(2) == 1
+      if rand(2) == 1
+        $render_pixels << $current_pixels[iter_x][iter_y] =
+                            { x: iter_x, y: iter_y, w: SIM_SCALE, h: SIM_SCALE, path: :pixel, primitive_marker: :solid }
+      end
       iter_x += SIM_SCALE
     end
     iter_y += SIM_SCALE
   end
-  args.state.iter_y = iter_y
+  $iter_y = iter_y
 
-  args.state.setup_done = true if args.state.iter_y >= args.grid.h
-
-  args.render_target(:field).solids << $current_pixels.map do |x_loc, value|
-    value.map do |y_loc, _state|
-      { x: x_loc, y: y_loc, w: SIM_SCALE, h: SIM_SCALE, path: :pixel }
-    end
-  end
-end
-
-def check_neighbor(_args, current_tick, _x_iter, _y_iter, n_x, n_y)
-  if current_tick.key?(n_x) && current_tick[n_x].key?(n_y)
-    true
-  else
-    false
-  end
+  $setup_done = true if $iter_y >= args.grid.h
 end
 
 def main_cycle(args)
@@ -74,81 +68,103 @@ def main_cycle(args)
   dead_cells_to_check = {}
   cells_checked = 0
 
-  $current_pixels.each_pair do |x_iter, value|
-    cells_checked += value.length
-    value.each_key do |y_iter|
+  $render_pixels = []
+
+  iter_x = $current_pixels.length - 1
+
+  while iter_x >= 0
+    iter_y = $current_pixels.values[iter_x].length - 1
+    cells_checked += iter_y
+    while iter_y >= 0
+      curr_x = $current_pixels.keys[iter_x]
+      curr_y = $current_pixels.values[iter_x].keys[iter_y]
       neighbors = 0
 
       n_locs = [
-        { x: x_iter - SIM_SCALE, y: y_iter - SIM_SCALE },
-        { x: x_iter, y: y_iter - SIM_SCALE },
-        { x: x_iter + SIM_SCALE, y: y_iter - SIM_SCALE },
-        { x: x_iter - SIM_SCALE, y: y_iter },
-        { x: x_iter + SIM_SCALE, y: y_iter },
-        { x: x_iter - SIM_SCALE, y: y_iter + SIM_SCALE },
-        { x: x_iter, y: y_iter + SIM_SCALE },
-        { x: x_iter + SIM_SCALE, y: y_iter + SIM_SCALE }
+        { x: curr_x - SIM_SCALE, y: curr_y - SIM_SCALE },
+        { x: curr_x, y: curr_y - SIM_SCALE },
+        { x: curr_x + SIM_SCALE, y: curr_y - SIM_SCALE },
+        { x: curr_x - SIM_SCALE, y: curr_y },
+        { x: curr_x + SIM_SCALE, y: curr_y },
+        { x: curr_x - SIM_SCALE, y: curr_y + SIM_SCALE },
+        { x: curr_x, y: curr_y + SIM_SCALE },
+        { x: curr_x + SIM_SCALE, y: curr_y + SIM_SCALE }
       ]
 
-      n_locs.each do |location|
-        break unless (location[:x]).positive? && location[:x] < args.grid.w
+      location_iter = 0
 
-        break unless (location[:y]).positive? && location[:y] < args.grid.h
-
-        if check_neighbor(args, $current_pixels, x_iter, y_iter, location[:x], location[:y])
-
-          neighbors += 1
-        else
-
-          dead_cells_to_check[location[:x]] ||= {}
-          dead_cells_to_check[location[:x]][location[:y]] = false
+      while location_iter < n_locs.length
+        location = n_locs[location_iter]
+        location_iter += 1
+        if (location[:x]).positive? && location[:x] < args.grid.w && (location[:y]).positive? && location[:y] < args.grid.h
+          if $current_pixels.key?(location[:x]) && $current_pixels[location[:x]].key?(location[:y])
+            neighbors += 1
+          else
+            dead_cells_to_check[location[:x]] ||= {}
+            dead_cells_to_check[location[:x]][location[:y]] = false
+          end
         end
       end
 
       if [3, 2].include?(neighbors)
-        next_tick[x_iter] ||= {}
-        next_tick[x_iter][y_iter] = true
+
+        next_tick[curr_x] ||= {}
+        $render_pixels << next_tick[curr_x][curr_y] =
+                            { x: curr_x, y: curr_y, w: SIM_SCALE, h: SIM_SCALE, path: :pixel,
+                              primitive_marker: :solid }
       end
+
+      iter_y -= 1
     end
+    iter_x -= 1
   end
 
-  dead_cells_to_check.each_pair do |x_iter, value|
-    cells_checked += value.length
-    value.each_key do |y_iter|
-      cells_checked += 1
+  iter_x = dead_cells_to_check.length - 1
+
+  while iter_x >= 0
+    iter_y = dead_cells_to_check.values[iter_x].length - 1
+    cells_checked += iter_y
+    while iter_y >= 0
+      curr_x = dead_cells_to_check.keys[iter_x]
+      curr_y = dead_cells_to_check.values[iter_x].keys[iter_y]
       neighbors = 0
 
       n_locs = [
-        { x: x_iter - SIM_SCALE, y: y_iter - SIM_SCALE },
-        { x: x_iter, y: y_iter - SIM_SCALE },
-        { x: x_iter + SIM_SCALE, y: y_iter - SIM_SCALE },
-        { x: x_iter - SIM_SCALE, y: y_iter },
-        { x: x_iter + SIM_SCALE, y: y_iter },
-        { x: x_iter - SIM_SCALE, y: y_iter + SIM_SCALE },
-        { x: x_iter, y: y_iter + SIM_SCALE },
-        { x: x_iter + SIM_SCALE, y: y_iter + SIM_SCALE }
+        { x: curr_x - SIM_SCALE, y: curr_y - SIM_SCALE },
+        { x: curr_x, y: curr_y - SIM_SCALE },
+        { x: curr_x + SIM_SCALE, y: curr_y - SIM_SCALE },
+        { x: curr_x - SIM_SCALE, y: curr_y },
+        { x: curr_x + SIM_SCALE, y: curr_y },
+        { x: curr_x - SIM_SCALE, y: curr_y + SIM_SCALE },
+        { x: curr_x, y: curr_y + SIM_SCALE },
+        { x: curr_x + SIM_SCALE, y: curr_y + SIM_SCALE }
       ]
 
-      n_locs.each do |location|
-        break unless (location[:x]).positive? && location[:x] < args.grid.w
-        break unless (location[:y]).positive? && location[:y] < args.grid.h
+      location_iter = 0
 
-        neighbors += 1 if check_neighbor(args, $current_pixels, x_iter, y_iter, location[:x], location[:y])
+      while location_iter < n_locs.length
+        location = n_locs[location_iter]
+        location_iter += 1
+        unless (location[:x]).positive? && location[:x] < args.grid.w && (location[:y]).positive? && location[:y] < args.grid.h
+          next
+        end
+
+        neighbors += 1 if $current_pixels.key?(location[:x]) && $current_pixels[location[:x]].key?(location[:y])
       end
 
       if neighbors == 3
-        next_tick[x_iter] ||= {}
-        next_tick[x_iter][y_iter] = true
+
+        next_tick[curr_x] ||= {}
+        $render_pixels << next_tick[curr_x][curr_y] =
+                            { x: curr_x, y: curr_y, w: SIM_SCALE, h: SIM_SCALE, path: :pixel,
+                              primitive_marker: :solid }
       end
+
+      iter_y -= 1
     end
+    iter_x -= 1
   end
 
   $current_pixels = next_tick
-  args.state.cells_checked = cells_checked
-
-  args.render_target(:field).solids << next_tick.map do |x_loc, value|
-    value.map do |y_loc, _state|
-      { x: x_loc, y: y_loc, w: SIM_SCALE, h: SIM_SCALE, path: :pixel }
-    end
-  end
+  $cells_checked = cells_checked
 end
