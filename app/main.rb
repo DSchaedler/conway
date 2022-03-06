@@ -9,12 +9,12 @@ def tick(args)
   $debug ||= false
 
   if $setup_done == false
-    setup(args)
+    setup
     tick_output ||= []
     tick_output << { x: 640, y: 360, alignment_enum: 1, text: 'Loading...', r: 0,
                      g: 255, b: 0, primitive_marker: :label }
   else
-    main_cycle(args)
+    main_cycle
 
     $debug = !$debug if args.inputs.keyboard.key_up.tab
     if $debug
@@ -37,7 +37,7 @@ def tick(args)
   args.outputs.primitives << $render_pixels
 end
 
-def setup(args)
+def setup
   $current_pixels ||= {}
 
   $iter_y ||= 0
@@ -62,7 +62,7 @@ def setup(args)
   $setup_done = true if $iter_y >= 720
 end
 
-def main_cycle(args)
+def main_cycle
   # Cell Neighbors
   # 123
   # 4@6
