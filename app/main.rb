@@ -12,25 +12,25 @@ def tick(args)
 
   if $setup_done == false
     setup(args)
-    tick_output << { x: args.grid.center_x, y: args.grid.center_y, alignment_enum: 1, text: 'Loading...', r: 0,
+    tick_output << { x: 640, y: 360, alignment_enum: 1, text: 'Loading...', r: 0,
                      g: 255, b: 0, primitive_marker: :label }
   else
     main_cycle(args)
 
     $debug = !$debug if args.inputs.keyboard.key_up.tab
     if $debug
-      tick_output << { x: args.grid.left, y: args.grid.top - 50, w: 400, h: 50, a: 200,
+      tick_output << { x: 0, y: 720 - 50, w: 400, h: 50, a: 200,
                        primitive_marker: :solid }
-      tick_output << { x: args.grid.left, y: args.grid.top, text: "FPS: #{args.gtk.current_framerate}", r: 0,
+      tick_output << { x: 0, y: 720, text: "FPS: #{args.gtk.current_framerate}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label }
       perent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))) * 100).round(2)
-      tick_output << { x: args.grid.left, y: args.grid.top - 20, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
+      tick_output << { x: 0, y: 720 - 20, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{perent}%", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label }
     end
   end
 
   args.outputs.primitives << $render_pixels
-  args.outputs.primitives << tick_output
+  args.outputs.primitives << tick_output if tick_output != []
 end
 
 def setup(args)
@@ -42,8 +42,8 @@ def setup(args)
 
   $render_pixels ||= []
 
-  if iter_y < args.grid.h
-    while iter_x < args.grid.w
+  if iter_y < 720
+    while iter_x < 1280
       $current_pixels[iter_x] ||= {}
       if rand(2) == 1
         $render_pixels << $current_pixels[iter_x][iter_y] =
@@ -55,7 +55,7 @@ def setup(args)
   end
   $iter_y = iter_y
 
-  $setup_done = true if $iter_y >= args.grid.h
+  $setup_done = true if $iter_y >= 720
 end
 
 def main_cycle(args)
@@ -96,7 +96,7 @@ def main_cycle(args)
       while location_iter < n_locs.length
         location = n_locs[location_iter]
         location_iter += 1
-        if (location[:x]).positive? && location[:x] < args.grid.w && (location[:y]).positive? && location[:y] < args.grid.h
+        if (location[:x]) > 0 && location[:x] < 1280 && (location[:y]) > 0 && location[:y] < 720
           if $current_pixels.key?(location[:x]) && $current_pixels[location[:x]].key?(location[:y])
             neighbors += 1
           else
@@ -145,7 +145,7 @@ def main_cycle(args)
       while location_iter < n_locs.length
         location = n_locs[location_iter]
         location_iter += 1
-        unless (location[:x]).positive? && location[:x] < args.grid.w && (location[:y]).positive? && location[:y] < args.grid.h
+        unless (location[:x]) > 0 && location[:x] < 1280 && (location[:y]) > 0 && location[:y] < 720
           next
         end
 
