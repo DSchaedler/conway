@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 8
+SIM_SCALE = 5
 
 def tick(args)
   $setup_done ||= false
@@ -19,12 +19,14 @@ def tick(args)
     $debug = !$debug if args.inputs.keyboard.key_up.tab
     if $debug
       tick_output ||= []
-      tick_output << { x: 0, y: 720 - 40, w: 490, h: 40, a: 200,
+      tick_output << { x: 0, y: 720 - 60, w: 490, h: 60, a: 200,
                        primitive_marker: :solid }
-      tick_output << { x: 0, y: 720, text: "FPS: #{args.gtk.current_framerate}", r: 0,
+      tick_output << { x: 0, y: 720, text: "Sim Scale: #{SIM_SCALE}", r: 0,
+                       g: 0, b: 255, size: 2, primitive_marker: :label }
+      tick_output << { x: 0, y: 700, text: "FPS: #{args.gtk.current_framerate}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label }
       percent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))))
-      tick_output << { x: 0, y: 720 - 20, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{percent}", r: 0,
+      tick_output << { x: 0, y: 680, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{percent}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label }
     end
   end
@@ -68,7 +70,7 @@ def main_cycle(args)
 
   next_tick = {}
   dead_cells_to_check = {}
-  cells_checked = 0
+  $cells_checked = 0
 
   $render_pixels = []
 
@@ -78,7 +80,7 @@ def main_cycle(args)
 
   while iter_x >= 0
     iter_y = temp_values[iter_x].length - 1
-    cells_checked += iter_y
+    $cells_checked += iter_y
     temp_x_keys = temp_values[iter_x].keys
     curr_x = temp_keys[iter_x]
     while iter_y >= 0
@@ -132,7 +134,7 @@ def main_cycle(args)
 
   while iter_x >= 0
     iter_y = temp_values[iter_x].length - 1
-    cells_checked += iter_y
+    $cells_checked += iter_y
     temp_x_keys = temp_values[iter_x].keys
     curr_x = temp_keys[iter_x]
     while iter_y >= 0
@@ -178,5 +180,4 @@ def main_cycle(args)
   end
 
   $current_pixels = next_tick
-  $cells_checked = cells_checked
 end
