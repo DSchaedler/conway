@@ -71,13 +71,16 @@ def main_cycle(args)
   $render_pixels = []
 
   iter_x = $current_pixels.length - 1
+  temp_keys = $current_pixels.keys
+  temp_values = $current_pixels.values
+  
 
   while iter_x >= 0
-    iter_y = $current_pixels.values[iter_x].length - 1
+    iter_y = temp_values[iter_x].length - 1
     cells_checked += iter_y
     while iter_y >= 0
-      curr_x = $current_pixels.keys[iter_x]
-      curr_y = $current_pixels.values[iter_x].keys[iter_y]
+      curr_x = temp_keys[iter_x]
+      curr_y = temp_values[iter_x].keys[iter_y]
       neighbors = 0
 
       n_locs = [
@@ -106,7 +109,7 @@ def main_cycle(args)
         end
       end
 
-      if [3, 2].include?(neighbors)
+      if neighbors == 3 || neighbors == 2
 
         next_tick[curr_x] ||= {}
         $render_pixels << next_tick[curr_x][curr_y] =
@@ -120,13 +123,15 @@ def main_cycle(args)
   end
 
   iter_x = dead_cells_to_check.length - 1
+  temp_keys = dead_cells_to_check.keys
+  temp_values = dead_cells_to_check.values
 
   while iter_x >= 0
-    iter_y = dead_cells_to_check.values[iter_x].length - 1
+    iter_y = temp_values[iter_x].length - 1
     cells_checked += iter_y
     while iter_y >= 0
-      curr_x = dead_cells_to_check.keys[iter_x]
-      curr_y = dead_cells_to_check.values[iter_x].keys[iter_y]
+      curr_x = temp_keys[iter_x]
+      curr_y = temp_values[iter_x].keys[iter_y]
       neighbors = 0
 
       n_locs = [
