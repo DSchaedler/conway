@@ -138,12 +138,11 @@ def main_cycle
     $cells_checked += iter_y
     temp_x_keys = temp_values[iter_x].keys
     curr_x = temp_keys[iter_x]
-    column = dead_cells_to_check[curr_x]
+    column = temp_values[iter_x]
     while iter_y >= 0
       curr_y = temp_x_keys[iter_y]
-      neighbors = column[curr_y]
 
-      if neighbors == 3
+      if column[curr_y] == 3
 
         next_tick[curr_x] ||= {}
         $render_pixels << next_tick[curr_x][curr_y] =
