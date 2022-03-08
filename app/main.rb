@@ -110,7 +110,8 @@ def main_cycle
             neighbors += 1
           else
             dead_cells_to_check[x] ||= {}
-            dead_cells_to_check[x][y] = false
+            dead_cells_to_check[x][y] ||= 0
+            dead_cells_to_check[x][y] += 1
           end
         end
       end
@@ -137,34 +138,10 @@ def main_cycle
     $cells_checked += iter_y
     temp_x_keys = temp_values[iter_x].keys
     curr_x = temp_keys[iter_x]
+    column = dead_cells_to_check[curr_x]
     while iter_y >= 0
       curr_y = temp_x_keys[iter_y]
-      neighbors = 0
-
-      n_locs = [
-        { x: curr_x - SIM_SCALE, y: curr_y - SIM_SCALE },
-        { x: curr_x, y: curr_y - SIM_SCALE },
-        { x: curr_x + SIM_SCALE, y: curr_y - SIM_SCALE },
-        { x: curr_x - SIM_SCALE, y: curr_y },
-        { x: curr_x + SIM_SCALE, y: curr_y },
-        { x: curr_x - SIM_SCALE, y: curr_y + SIM_SCALE },
-        { x: curr_x, y: curr_y + SIM_SCALE },
-        { x: curr_x + SIM_SCALE, y: curr_y + SIM_SCALE }
-      ]
-
-      location_iter = 0
-
-      while location_iter < 8
-        location = n_locs[location_iter]
-        location_iter += 1
-        x = location[:x]
-        y = location[:y]
-        unless (x) > 0 && x < 1280 && (y) > 0 && y < 720
-          next
-        end
-
-        neighbors += 1 if $current_pixels.key?(x) && $current_pixels[x].key?(y)
-      end
+      neighbors = column[curr_y]
 
       if neighbors == 3
 
