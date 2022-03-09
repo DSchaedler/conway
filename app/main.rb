@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 5
+SIM_SCALE = 4
 
 def tick(args)
   $setup_done ||= false
@@ -33,6 +33,9 @@ def tick(args)
 
   tick_output ||= nil
 
+  $render_pixels = [{ x: 0, y: 0, w: 1280, h: 720, a: 255, r: 0, g: 0, b: 0,
+    primitive_marker: :solid }].concat($render_pixels)
+
   $render_pixels.concat(tick_output) if tick_output
   args.outputs.primitives << $render_pixels
 end
@@ -50,8 +53,7 @@ def setup
     while iter_x < 1280
       $current_pixels[iter_x] ||= {}
       if rand(2) == 1
-        $render_pixels << $current_pixels[iter_x][iter_y] =
-                            { x: iter_x, y: iter_y, w: SIM_SCALE, h: SIM_SCALE, path: :pixel, primitive_marker: :solid }
+        $render_pixels << $current_pixels[iter_x][iter_y] = PixelNew.new(iter_x, iter_y)
       end
       iter_x += SIM_SCALE
     end
@@ -119,9 +121,7 @@ def main_cycle
       if neighbors == 3 || neighbors == 2
 
         next_tick[curr_x] ||= {}
-        $render_pixels << next_tick[curr_x][curr_y] =
-                            { x: curr_x, y: curr_y, w: SIM_SCALE, h: SIM_SCALE, path: :pixel,
-                              primitive_marker: :solid }
+        $render_pixels << next_tick[curr_x][curr_y] = PixelNew.new(curr_x, curr_y)
       end
 
       iter_y -= 1
@@ -145,9 +145,8 @@ def main_cycle
       if column[curr_y] == 3
 
         next_tick[curr_x] ||= {}
-        $render_pixels << next_tick[curr_x][curr_y] =
-                            { x: curr_x, y: curr_y, w: SIM_SCALE, h: SIM_SCALE, path: :pixel,
-                              primitive_marker: :solid }
+        $render_pixels << next_tick[curr_x][curr_y] = PixelNew.new(curr_x, curr_y)
+
       end
 
       iter_y -= 1
@@ -156,4 +155,18 @@ def main_cycle
   end
 
   $current_pixels = next_tick
+end
+
+# Class to remove erronious draw calls
+class PixelNew
+  attr_sprite
+  def initialize(x, y)
+    @x = x
+    @y = y
+  end
+
+  def draw_override(ffi)
+    ffi.draw_sprite(@x, @y, SIM_SCALE, SIM_SCALE, 'pixel')
+    # ffi.draw_sprite(@x, @y, PIXEL_SIZE, PIXEL_SIZE, 'sprites/circle.png')
+  end
 end
