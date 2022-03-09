@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 4
+SIM_SCALE = 5
+START_DENSITY = 10 # 1/n chance of starting live
 
 def tick(args)
   $setup_done ||= false
@@ -52,7 +53,7 @@ def setup
   if iter_y < 720
     while iter_x < 1280
       $current_pixels[iter_x] ||= {}
-      if rand(2) == 1
+      if rand(START_DENSITY) == 0
         $render_pixels << $current_pixels[iter_x][iter_y] = PixelNew.new(iter_x, iter_y)
       end
       iter_x += SIM_SCALE
