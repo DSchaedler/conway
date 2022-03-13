@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 4
-START_DENSITY = 10 # 1/n chance of starting live
+SIM_SCALE = 2
+START_DENSITY = 15 # 1/n chance of starting live
 
 def tick(args)
   $setup_done ||= false
@@ -52,9 +52,11 @@ def setup
 
   if iter_y < 720
     while iter_x < 1280
-      $current_pixels[iter_x] ||= {}
-      $current_pixels[iter_x][iter_y] = PixelNew.new(iter_x, iter_y) if rand(START_DENSITY) == 0
-      $render_pixels.unshift($current_pixels[iter_x][iter_y])
+      if rand(START_DENSITY) == 0
+        $current_pixels[iter_x] ||= {}
+        $current_pixels[iter_x][iter_y] = PixelNew.new(iter_x, iter_y) 
+        $render_pixels.unshift($current_pixels[iter_x][iter_y])
+      end
       iter_x += SIM_SCALE
     end
     iter_y += SIM_SCALE
@@ -65,11 +67,6 @@ def setup
 end
 
 def main_cycle
-  # Cell Neighbors
-  # 123
-  # 4@6
-  # 789
-
   next_tick = {}
   dead_cells_to_check = {}
   $cells_checked = 0
@@ -118,7 +115,7 @@ def main_cycle
         end
       end
 
-      if [2, 3].include?(neighbors)
+      if neighbors == 2 || neighbors == 3
 
         next_tick[curr_x] ||= {}
         next_tick[curr_x][curr_y] = PixelNew.new(curr_x, curr_y)
@@ -144,13 +141,10 @@ def main_cycle
       curr_y = temp_x_keys[iter_y]
 
       if column[curr_y] == 3
-
         next_tick[curr_x] ||= {}
         next_tick[curr_x][curr_y] = PixelNew.new(curr_x, curr_y)
         $render_pixels.unshift(next_tick[curr_x][curr_y])
-
       end
-
       iter_y -= 1
     end
     iter_x -= 1
