@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 2
-START_DENSITY = 15 # 1/n chance of starting live
+SIM_SCALE = 4
+START_DENSITY = 10 # 1/n chance of starting live
 
 def tick(args)
   $setup_done ||= false
@@ -163,5 +163,9 @@ class PixelNew
 
   def draw_override(ffi)
     ffi.draw_sprite(@x, @y, SIM_SCALE, SIM_SCALE, 'pixel')
+  end
+
+  def serialize
+    {}
   end
 end
