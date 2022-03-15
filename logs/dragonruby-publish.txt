@@ -1,12 +1,12 @@
-* 000000 Log started at 2022/3/5 23:0:4
-* 000000 This copy of the engine is git hash ddbbe6751ce5a21c6c9348389e0c0cc46648965f, built on Feb 19 2022, at 03:16:17
+* 000000 Log started at 2022/3/13 4:16:21
+* 000000 This copy of the engine is git hash e5860403726ac854bbd231198d727490b9e08948, built on Mar 12 2022, at 15:16:13
 * 000000 Platform: Linux
-- 000000 Starting publish for game in directory '/conway'
+- 000000 Starting publish for game in directory '../conway/'
 ! 000000 Failed to load game metadata
 ! 000000 
 ! 000000 
 ! 000000 We're having a problem with your game's metadata.
-! 000000 Please make sure that /conway/metadata/game_metadata.txt exists
+! 000000 Please make sure that ../conway//metadata/game_metadata.txt exists
 ! 000000  and looks something like this:
 ! 000000 
 ! 000000 devid=myname

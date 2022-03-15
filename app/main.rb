@@ -12,33 +12,31 @@ def tick(args)
   if $setup_done == false
     setup
     tick_output ||= []
-    tick_output << { x: 640, y: 360, alignment_enum: 1, text: 'Loading...', r: 0,
-                     g: 255, b: 0, primitive_marker: :label }
+    tick_output.unshift( { x: 640, y: 360, alignment_enum: 1, text: 'Loading...', r: 0,
+                     g: 255, b: 0, primitive_marker: :label })
   else
     main_cycle
 
     $debug = !$debug if args.inputs.keyboard.key_up.tab
     if $debug
       tick_output ||= []
-      tick_output << { x: 0, y: 720 - 60, w: 490, h: 60, a: 200,
-                       primitive_marker: :solid }
-      tick_output << { x: 0, y: 720, text: "Sim Scale: #{SIM_SCALE}", r: 0,
-                       g: 0, b: 255, size: 2, primitive_marker: :label }
-      tick_output << { x: 0, y: 700, text: "FPS: #{args.gtk.current_framerate}", r: 0,
-                       g: 0, b: 255, size: 2, primitive_marker: :label }
+      tick_output.unshift({ x: 0, y: 720, text: "Sim Scale: #{SIM_SCALE}", r: 0,
+                       g: 0, b: 255, size: 2, primitive_marker: :label })
+      tick_output.unshift({ x: 0, y: 700, text: "FPS: #{args.gtk.current_framerate}", r: 0,
+                       g: 0, b: 255, size: 2, primitive_marker: :label })
       percent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))))
-      tick_output << { x: 0, y: 680, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{percent}", r: 0,
-                       g: 0, b: 255, size: 2, primitive_marker: :label }
+      tick_output.unshift({ x: 0, y: 680, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{percent}", r: 0,
+                       g: 0, b: 255, size: 2, primitive_marker: :label })
     end
   end
 
   tick_output ||= nil
 
   $render_pixels.unshift({ x: 0, y: 0, w: 1280, h: 720, a: 255, r: 0, g: 0, b: 0,
-                           primitive_marker: :solid })
+                           primitive_marker: :sprite, path: :pixel })
 
-  $render_pixels.concat(tick_output) if tick_output
-  args.outputs.primitives << $render_pixels
+  args.outputs.sprites.concat($render_pixels)
+  args.outputs.labels.concat(tick_output) if tick_output
 end
 
 def setup
@@ -116,12 +114,10 @@ def main_cycle
       end
 
       if neighbors == 2 || neighbors == 3
-
         next_tick[curr_x] ||= {}
         next_tick[curr_x][curr_y] = PixelNew.new(curr_x, curr_y)
         $render_pixels.unshift(next_tick[curr_x][curr_y])
       end
-
       iter_y -= 1
     end
     iter_x -= 1
@@ -149,7 +145,6 @@ def main_cycle
     end
     iter_x -= 1
   end
-
   $current_pixels = next_tick
 end
 
@@ -165,7 +160,5 @@ class PixelNew
     ffi.draw_sprite(@x, @y, SIM_SCALE, SIM_SCALE, 'pixel')
   end
 
-  def serialize
-    {}
-  end
+  def serialize; {}; end; # This is to make the engine keep quiet about the custom pixel class.
 end
