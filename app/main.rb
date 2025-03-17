@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
-# 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
-SIM_SCALE = 4
-START_DENSITY = 10 # 1/n chance of starting live
+def reset_sim()
+  $setup_done = false
+  $cells_checked = []
+  $current_pixels = {}
+  $render_pixels = []
+  $iter_y = 0
+end
 
 def tick(args)
   $setup_done ||= false
@@ -10,7 +14,7 @@ def tick(args)
   $debug ||= false
 
   args.gtk.log_level = :off
-  
+
   if $setup_done == false
     setup
     tick_output = []
@@ -22,12 +26,12 @@ def tick(args)
     $debug = !$debug if args.inputs.keyboard.key_up.tab
     if $debug
       tick_output ||= []
-      tick_output.unshift({ x: 0, y: 720, text: "Sim Scale: #{SIM_SCALE}", r: 0,
+      tick_output.unshift({ x: 0, y: 720, text: "Sim Scale: #{$sim_scale}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label })
       tick_output.unshift({ x: 0, y: 700, text: "FPS: #{args.gtk.current_framerate}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label })
-      percent = (($cells_checked / ((1280 / SIM_SCALE) * (720 / SIM_SCALE))))
-      tick_output.unshift({ x: 0, y: 680, text: "Cells Checked: #{$cells_checked}/#{(1280 / SIM_SCALE) * (720 / SIM_SCALE)} - #{percent}", r: 0,
+      percent = (($cells_checked / ((1280 / $sim_scale) * (720 / $sim_scale))))
+      tick_output.unshift({ x: 0, y: 680, text: "Cells Checked: #{$cells_checked}/#{(1280 / $sim_scale) * (720 / $sim_scale)} - #{percent}", r: 0,
                        g: 0, b: 255, size: 2, primitive_marker: :label })
     end
   end
@@ -42,6 +46,9 @@ def tick(args)
 end
 
 def setup
+  $start_density ||= 10 # 1/n chance of starting live
+  $sim_scale ||= 4 # 1; 2; 4; 5; 8; 10; 16; 20; 40 and 80
+
   $current_pixels ||= {}
 
   $iter_y ||= 0
@@ -52,14 +59,14 @@ def setup
 
   if iter_y < 720
     while iter_x < 1280
-      if rand(START_DENSITY) == 0
+      if rand($start_density) == 0
         $current_pixels[iter_x] ||= {}
-        $current_pixels[iter_x][iter_y] = PixelNew.new(iter_x, iter_y) 
+        $current_pixels[iter_x][iter_y] = PixelNew.new(iter_x, iter_y)
         $render_pixels.unshift($current_pixels[iter_x][iter_y])
       end
-      iter_x += SIM_SCALE
+      iter_x += $sim_scale
     end
-    iter_y += SIM_SCALE
+    iter_y += $sim_scale
   end
   $iter_y = iter_y
 
@@ -87,14 +94,14 @@ def main_cycle
       neighbors = 0
 
       n_locs = [
-        { x: curr_x - SIM_SCALE, y: curr_y - SIM_SCALE },
-        { x: curr_x, y: curr_y - SIM_SCALE },
-        { x: curr_x + SIM_SCALE, y: curr_y - SIM_SCALE },
-        { x: curr_x - SIM_SCALE, y: curr_y },
-        { x: curr_x + SIM_SCALE, y: curr_y },
-        { x: curr_x - SIM_SCALE, y: curr_y + SIM_SCALE },
-        { x: curr_x, y: curr_y + SIM_SCALE },
-        { x: curr_x + SIM_SCALE, y: curr_y + SIM_SCALE }
+        { x: curr_x - $sim_scale, y: curr_y - $sim_scale },
+        { x: curr_x, y: curr_y - $sim_scale },
+        { x: curr_x + $sim_scale, y: curr_y - $sim_scale },
+        { x: curr_x - $sim_scale, y: curr_y },
+        { x: curr_x + $sim_scale, y: curr_y },
+        { x: curr_x - $sim_scale, y: curr_y + $sim_scale },
+        { x: curr_x, y: curr_y + $sim_scale },
+        { x: curr_x + $sim_scale, y: curr_y + $sim_scale }
       ]
 
       location_iter = 0
@@ -159,7 +166,7 @@ class PixelNew
   end
 
   def draw_override(ffi)
-    ffi.draw_sprite(@x, @y, SIM_SCALE, SIM_SCALE, 'pixel')
+    ffi.draw_sprite(@x, @y, $sim_scale, $sim_scale, 'pixel')
   end
 
   def serialize; {}; end; # This is to make the engine keep quiet about the custom pixel class.
