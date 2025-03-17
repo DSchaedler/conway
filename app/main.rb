@@ -9,9 +9,11 @@ def tick(args)
   $cells_checked ||= 0
   $debug ||= false
 
+  args.gtk.log_level = :off
+  
   if $setup_done == false
     setup
-    tick_output ||= []
+    tick_output = []
     tick_output.unshift( { x: 640, y: 360, alignment_enum: 1, text: 'Loading...', r: 0,
                      g: 255, b: 0, primitive_marker: :label })
   else
