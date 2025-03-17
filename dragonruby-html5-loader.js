@@ -4,6 +4,7 @@ var GDragonRubyDevTitle = 'Dee Schaedler';
 var GDragonRubyGameVersion = '0.1';
 var GDragonRubyIcon = '/metadata/icon.png';
 var GDragonRubyWriteDir = '/deeschaedler-dr-conway';
+var GDragonRubyOrientation = 'landscape';
 
 function syncDataFiles(dbname, baseurl)
 {
@@ -102,7 +103,12 @@ function syncDataFiles(dbname, baseurl)
     };
 
     dbopen.onerror = function(event) {
-        failed("Couldn't open local database: " + event.target.error.message);
+      var isBraveBrowser = navigator.brave || false;
+      var errorMessage = "Couldn't open local database: " + event.target.error.message;
+      if (isBraveBrowser) {
+        errorMessage += "<br/>Note: This error can also happen if you are using Brave Browser and have not disabled Shield (click the Lion icon in the address bar and disable Shield for this site).";
+      }
+      failed(errorMessage);
     };
 
     // !!! FIXME: there _has_ to be a better way to do this, right?
@@ -382,23 +388,58 @@ var prepareFilesystem = function()
       //setTimeout(function() { Module.setStatus(""); statusElement.style.display='none'; }, 1000);
       Module.setStatus("");
       statusElement.style.display='none';
-      Module.startClickToPlay();
+      startGame();
     });
   });
 }
-
 
 var statusElement = document.getElementById('status');
 var progressElement = document.getElementById('progress');
 var canvasElement = document.getElementById('canvas');
 
-if (window.self != window.top) {
-  canvasElement.style.width = window.innerWidth;
-  canvasElement.style.height = window.innerHeight;
-} else {
-  canvasElement.style.width = "100%";
-  canvasElement.style.height = "100%";
+let initialWindowWidth = window.innerWidth;
+let initialWindowHeight = window.innerHeight;
+
+function isInsideIFrame() {
+  return window.self != window.top;
 }
+
+function shouldCanvasFillWindow() {
+  if (!isInsideIFrame()) {
+    return true;
+  }
+
+  if (window.innerWidth == window.outerWidth && window.innerHeight == window.outerHeight) {
+    return true;
+  }
+
+  return false;
+}
+
+function resizeCanvas() {
+  if (shouldCanvasFillWindow()) {
+    canvasElement.style.width = "100%";
+    canvasElement.style.height = "100%";
+  } else {
+    canvasElement.style.width = initialWindowWidth.toString() + "px";
+    canvasElement.style.height = initialWindowHeight.toString() + "px";
+  }
+}
+
+let lastWindowWidth = window.innerWidth;
+let lastWindowHeight = window.innerHeight;
+
+if (isInsideIFrame()) {
+  setInterval(function() {
+    if (window.innerWidth != lastWindowWidth || window.innerHeight != lastWindowHeight) {
+      resizeCanvas();
+      lastWindowWidth = window.innerWidth;
+      lastWindowHeight = window.innerHeight;
+    }
+  }, 500);
+}
+
+resizeCanvas();
 
 document.getElementById('borderdiv').style.border = '0px';
 
@@ -550,11 +591,18 @@ var Module = {
         div.removeEventListener('click', Module.clickToPlayListener);
         document.body.removeChild(div);
     }
+
+    document.removeEventListener('keydown', Module.enterPressedCallback);
     // if (window.parent.window.gtk.starting) {
     //   window.parent.window.gtk.starting();
     // }
 
     startGame();  // go go go!
+  },
+  enterPressedCallback: function(event) {
+    if (event.keyCode == 13) {
+      Module.clickToPlayListener();
+    }
   },
   startClickToPlay: function() {
     var base64 = base64Encode(FS.readFile(GDragonRubyIcon, {}));
@@ -621,6 +669,8 @@ var Module = {
 
     document.body.appendChild(div);
     div.addEventListener('click', Module.clickToPlayListener);
+    document.addEventListener("keydown", Module.enterPressedCallback);
+
     window.gtk.play = Module.clickToPlayListener;
   },
   preRun: function() {
@@ -695,6 +745,20 @@ var Module = {
     Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
   }
 };
+
+Module.onRuntimeInitialized = function() {
+  Module.ffi_send = Module.cwrap('ffi_js_send',
+				 'string',
+				 ['string', 'string']);
+
+  Module.ffi_free = function(s) {
+    Module.ccall('ffi_js_free_string',
+		 null,
+		 ['string'],
+		 [s]);
+  };
+};
+
 Module.setStatus('Downloading...');
 window.onerror = function(event) {
   // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
@@ -704,15 +768,7 @@ window.onerror = function(event) {
   };
 };
 
-// sanity check this before downloading anything heavy.
-var hasWebAssembly = false;
-if (typeof WebAssembly==="object" && typeof WebAssembly.Memory==="function") {
-  hasWebAssembly = true;
-}
-//console.log("Do we have WebAssembly? " + ((hasWebAssembly) ? "YES" : "NO"));
-if (!hasWebAssembly) {
-  Module.setStatus("Your browser doesn't have WebAssembly support. Please upgrade.");
-} else {
+function loadMainModule() {
   var buildtype = "wasm";
   var module = "dragonruby-" + buildtype + ".js";
   window.gtk = {};
@@ -724,6 +780,89 @@ if (!hasWebAssembly) {
   script.src = module;
   script.async = true;
   document.body.appendChild(script);
+
+}
+
+function isMobileSafari() {
+  const userAgent = window.navigator.userAgent;
+  return /iPhone/.test(userAgent) || /iPad/.test(userAgent);
+}
+
+function isSafari() {
+  const userAgent = window.navigator.userAgent;
+  return /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+}
+
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent);
+}
+
+function isFirefox() {
+  return /Firefox/i.test(navigator.userAgent);
+}
+
+function isNestedIFrame() {
+  if (window.self == window.top) return false;
+  return (window.parent && window.parent != window.top);
+}
+
+// only chrome seems to work with iFrames (Itch.io)
+if (isSafari() || isMobileSafari() || isAndroid() || isNestedIFrame() || isFirefox()) {
+  if (window.self !== window.top) {
+    document.body.innerHTML = "<a style='margin-left: auto; margin-right: auto; margin-top: 50px; font-family: monospace; color: white; visited: white; font-size: 20px; text-align: center; display: block; width: 300px; height: 100%;' target='_top' href='" + window.self.location.href + "'>Click Here to Load Game</a>";
+  } else {
+    loadLoadMainModule();
+  }
+} else {
+  loadLoadMainModule();
+}
+
+function loadLoadMainModule() {
+  // sanity check this before downloading anything heavy.
+  var hasWebAssembly = (typeof WebAssembly==="object" && typeof WebAssembly.Memory==="function");
+  var hasSharedArrayBuffer = (typeof SharedArrayBuffer!=="undefined");
+
+  //console.log("Do we have WebAssembly? " + ((hasWebAssembly) ? "YES" : "NO"));
+  if (!hasWebAssembly) {
+    Module.setStatus("Your browser doesn't have WebAssembly support. Please upgrade.");
+  } else if (!hasSharedArrayBuffer) {
+    var isBraveBrowser = navigator.brave || false;
+    var isHttps = window.location.protocol === "https:";
+    var errorMessage = "Your browser doesn't have SharedArrayBuffer support. Please upgrade, or make sure the webserver set proper COOP/COEP headers!";
+    if (!isHttps) {
+      errorMessage += "<br/>Note: This error can also happen if you are not using HTTPS.";
+    }
+    if (isBraveBrowser) {
+      errorMessage += "<br/>Note: This error can also happen if you are using Brave Browser and have not disabled Shield (click the Lion icon in the address bar and disable Shield for this site).";
+    }
+
+    // shove a service worker into the pipeline, so we can force the COOP/COEP headers that SharedArrayBuffer requires.
+    if ("serviceWorker" in navigator) {
+      // Register service worker
+      navigator.serviceWorker.register("dragonruby-serviceworker.js").then(
+	function (registration) {
+          console.log("DragonRuby COOP/COEP Service Worker registered", registration.scope);
+          // If the registration is active, but it's not controlling the page
+          if (!navigator.serviceWorker.controller) {
+            Module.setStatus("One moment, reloading to enable SharedArrayBuffer.");
+            window.location.reload();
+          } else {
+            loadMainModule();
+          }
+	},
+	function (err) {
+          console.log("COOP/COEP Service Worker failed to register", err);
+          Module.setStatus(errorMessage);
+	}
+      );
+    } else {
+      console.warn("Cannot register a service worker");
+      Module.setStatus(errorMessage);
+    }
+
+  } else {
+    loadMainModule();
+  }
 }
 
 // end of dragonruby-html5-loader.js ...
